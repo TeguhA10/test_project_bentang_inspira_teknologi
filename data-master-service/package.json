@@ -1,0 +1,12 @@
+{
+  "name": "data-master-service",
+  "version": "1.0.0",
+  "main": "index.js",
+  "dependencies": {
+    "cors": "^2.8.5",
+    "dompet-pnbp-monorepo": "file:..",
+    "dotenv": "^16.4.7",
+    "express": "^4.21.2",
+    "pg": "^8.13.1"
+  }
+}

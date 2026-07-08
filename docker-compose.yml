@@ -1,0 +1,114 @@
+version: '3.8'
+
+services:
+  auth-service:
+    build:
+      context: .
+      dockerfile: auth-service/Dockerfile
+    container_name: auth-service
+    ports:
+      - "4001:4001"
+    environment:
+      - PORT=4001
+      - DB_USER=postgres
+      - DB_PASSWORD=password123!
+      - DB_HOST=host.docker.internal
+      - DB_PORT=5432
+      - DB_NAME=auth_service_db
+      - JWT_SECRET=my-super-secret-jwt-key-9876!
+      - GATEWAY_SECRET=gateway-secret
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+  rbac-service:
+    build:
+      context: .
+      dockerfile: rbac-service/Dockerfile
+    container_name: rbac-service
+    ports:
+      - "4002:4002"
+    environment:
+      - PORT=4002
+      - DB_USER=postgres
+      - DB_PASSWORD=password123!
+      - DB_HOST=host.docker.internal
+      - DB_PORT=5432
+      - DB_NAME=rbac_service_db
+      - GATEWAY_SECRET=gateway-secret
+      - AUTH_SERVICE_URL=http://auth-service:4001
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    depends_on:
+      - auth-service
+
+  data-master-service:
+    build:
+      context: .
+      dockerfile: data-master-service/Dockerfile
+    container_name: data-master-service
+    ports:
+      - "4003:4003"
+    environment:
+      - PORT=4003
+      - DB_USER=postgres
+      - DB_PASSWORD=password123!
+      - DB_HOST=host.docker.internal
+      - DB_PORT=5432
+      - DB_NAME=data_master_service_db
+      - GATEWAY_SECRET=gateway-secret
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+  transaksi-service:
+    build:
+      context: .
+      dockerfile: transaksi-service/Dockerfile
+    container_name: transaksi-service
+    ports:
+      - "4004:4004"
+    environment:
+      - PORT=4004
+      - DB_USER=postgres
+      - DB_PASSWORD=password123!
+      - DB_HOST=host.docker.internal
+      - DB_PORT=5432
+      - DB_NAME=transaksi_service_db
+      - GATEWAY_SECRET=gateway-secret
+      - DATA_MASTER_SERVICE_URL=http://data-master-service:4003
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    depends_on:
+      - data-master-service
+
+  api-gateway:
+    build:
+      context: .
+      dockerfile: api-gateway/Dockerfile
+    container_name: api-gateway
+    ports:
+      - "4000:4000"
+    environment:
+      - PORT=4000
+      - GATEWAY_SECRET=gateway-secret
+      - JWT_SECRET=my-super-secret-jwt-key-9876!
+      - AUTH_SERVICE_URL=http://auth-service:4001
+      - RBAC_SERVICE_URL=http://rbac-service:4002
+      - DATA_MASTER_SERVICE_URL=http://data-master-service:4003
+      - TRANSAKSI_SERVICE_URL=http://transaksi-service:4004
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    depends_on:
+      - auth-service
+      - rbac-service
+      - data-master-service
+      - transaksi-service
+
+  frontend:
+    build:
+      context: .
+      dockerfile: frontend/Dockerfile
+    container_name: frontend-app
+    ports:
+      - "5173:5173"
+    depends_on:
+      - api-gateway
