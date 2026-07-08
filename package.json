@@ -3,6 +3,9 @@
   "version": "1.0.0",
   "description": "Monorepo for Dompet PNBP Microservices",
   "scripts": {
+    "start": "docker compose up --build -d",
+    "stop": "docker compose down -v --remove-orphans",
+    "logs": "docker compose logs -f",
     "init-db": "node scripts/init-db.js",
     "install-all": "npm install && npm install --prefix api-gateway && npm install --prefix auth-service && npm install --prefix rbac-service && npm install --prefix data-master-service && npm install --prefix transaksi-service && npm install --prefix frontend",
     "start-gateway": "node api-gateway/index.js",
@@ -12,8 +15,8 @@
     "start-transaksi": "node transaksi-service/index.js",
     "start-frontend": "node frontend/node_modules/vite/bin/vite.js frontend",
     "dev": "node node_modules/concurrently/dist/bin/concurrently.js \"node api-gateway/index.js\" \"node auth-service/index.js\" \"node rbac-service/index.js\" \"node data-master-service/index.js\" \"node transaksi-service/index.js\" \"node frontend/node_modules/vite/bin/vite.js frontend\"",
-    "docker:up": "docker compose up --build",
-    "docker:down": "docker compose down"
+    "docker:up": "docker compose up --build -d",
+    "docker:down": "docker compose down -v --remove-orphans"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",

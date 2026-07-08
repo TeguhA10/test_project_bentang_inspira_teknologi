@@ -1,6 +1,46 @@
 version: '3.8'
 
 services:
+  # ============================================
+  # PostgreSQL Database (Containerized)
+  # ============================================
+  postgres:
+    image: postgres:16-alpine
+    container_name: postgres-db
+    ports:
+      - "5433:5432"
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=password123!
+      - POSTGRES_DB=postgres
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 3s
+      timeout: 5s
+      retries: 10
+
+  # ============================================
+  # Database Initializer (runs once then exits)
+  # ============================================
+  init-db:
+    build:
+      context: .
+      dockerfile: scripts/Dockerfile.initdb
+    container_name: init-db
+    environment:
+      - DB_USER=postgres
+      - DB_PASSWORD=password123!
+      - DB_HOST=postgres
+      - DB_PORT=5432
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  # ============================================
+  # Backend Microservices
+  # ============================================
   auth-service:
     build:
       context: .
@@ -12,13 +52,14 @@ services:
       - PORT=4001
       - DB_USER=postgres
       - DB_PASSWORD=password123!
-      - DB_HOST=host.docker.internal
+      - DB_HOST=postgres
       - DB_PORT=5432
       - DB_NAME=auth_service_db
       - JWT_SECRET=my-super-secret-jwt-key-9876!
       - GATEWAY_SECRET=gateway-secret
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
+    depends_on:
+      init-db:
+        condition: service_completed_successfully
 
   rbac-service:
     build:
@@ -31,15 +72,16 @@ services:
       - PORT=4002
       - DB_USER=postgres
       - DB_PASSWORD=password123!
-      - DB_HOST=host.docker.internal
+      - DB_HOST=postgres
       - DB_PORT=5432
       - DB_NAME=rbac_service_db
       - GATEWAY_SECRET=gateway-secret
       - AUTH_SERVICE_URL=http://auth-service:4001
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
     depends_on:
-      - auth-service
+      init-db:
+        condition: service_completed_successfully
+      auth-service:
+        condition: service_started
 
   data-master-service:
     build:
@@ -52,12 +94,13 @@ services:
       - PORT=4003
       - DB_USER=postgres
       - DB_PASSWORD=password123!
-      - DB_HOST=host.docker.internal
+      - DB_HOST=postgres
       - DB_PORT=5432
       - DB_NAME=data_master_service_db
       - GATEWAY_SECRET=gateway-secret
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
+    depends_on:
+      init-db:
+        condition: service_completed_successfully
 
   transaksi-service:
     build:
@@ -70,16 +113,20 @@ services:
       - PORT=4004
       - DB_USER=postgres
       - DB_PASSWORD=password123!
-      - DB_HOST=host.docker.internal
+      - DB_HOST=postgres
       - DB_PORT=5432
       - DB_NAME=transaksi_service_db
       - GATEWAY_SECRET=gateway-secret
       - DATA_MASTER_SERVICE_URL=http://data-master-service:4003
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
     depends_on:
-      - data-master-service
+      init-db:
+        condition: service_completed_successfully
+      data-master-service:
+        condition: service_started
 
+  # ============================================
+  # API Gateway
+  # ============================================
   api-gateway:
     build:
       context: .
@@ -95,14 +142,15 @@ services:
       - RBAC_SERVICE_URL=http://rbac-service:4002
       - DATA_MASTER_SERVICE_URL=http://data-master-service:4003
       - TRANSAKSI_SERVICE_URL=http://transaksi-service:4004
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
     depends_on:
       - auth-service
       - rbac-service
       - data-master-service
       - transaksi-service
 
+  # ============================================
+  # Frontend
+  # ============================================
   frontend:
     build:
       context: .
@@ -112,3 +160,6 @@ services:
       - "5173:5173"
     depends_on:
       - api-gateway
+
+volumes:
+  pgdata:

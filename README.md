@@ -9,13 +9,15 @@ Sistem manajemen Dompet Penerimaan Negara Bukan Pajak (PNBP) berbasis arsitektur
 ### Teknologi Utama:
 - **Frontend**: React 19, TypeScript, Vite, Tailwind CSS (v3), Axios, Lucide React
 - **Backend (Microservices)**: Node.js, Express, JSON Web Token (JWT)
-- **Database**: PostgreSQL (Relasional)
+- **Database**: PostgreSQL 16 (Containerized via Docker)
 - **Containerization**: Docker & Docker Compose
 - **Gateway**: API Gateway untuk routing request dari frontend ke microservices backend.
 
 ### Struktur Layanan (Microservices & Port):
 | Nama Service | Deskripsi | Port Default |
 | :--- | :--- | :---: |
+| **postgres** | Database PostgreSQL (containerized) | `5433` (host) → `5432` (container) |
+| **init-db** | Auto-create database, tabel & seed data (run once) | - |
 | **api-gateway** | Gateway utama sebagai gerbang masuk request API | `4000` |
 | **auth-service** | Mengelola autentikasi user, registrasi, login, & blacklist JWT | `4001` |
 | **rbac-service** | Mengelola Role-Based Access Control (RBAC) & role user | `4002` |
@@ -28,54 +30,56 @@ Sistem manajemen Dompet Penerimaan Negara Bukan Pajak (PNBP) berbasis arsitektur
 ## 🛠️ Prasyarat (Prerequisites)
 
 Sebelum menjalankan aplikasi, pastikan Anda telah memasang:
-1. **Node.js** (Rekomendasi v18 ke atas) & **npm**
-2. **PostgreSQL Database** (Berjalan secara lokal di port `5432` dengan user default `postgres`)
-3. **Docker Desktop** (Jika ingin menjalankan microservices menggunakan Docker)
+1. **Docker Desktop** (Wajib - semua service termasuk database berjalan di Docker)
+2. **Node.js** (Opsional - hanya jika ingin menjalankan secara lokal tanpa Docker)
+
+> **Catatan:** Anda **TIDAK perlu** menginstal PostgreSQL secara lokal. Database PostgreSQL sudah disediakan otomatis di dalam Docker container.
 
 ---
 
 ## 🚀 Cara Menjalankan Aplikasi
 
-### Opsi A: Menjalankan Menggunakan Docker (Direkomendasikan - Satu Perintah)
+### ✅ Opsi A: Satu Perintah dengan Docker (Direkomendasikan)
 
-Sesuai ketentuan, **database PostgreSQL dan pembuatan table dilakukan secara lokal (di luar Docker)**, sedangkan seluruh service backend dan frontend dijalankan di dalam Docker container.
+Cukup **satu perintah** untuk menjalankan semuanya (database + init tabel + seed data + semua service + frontend):
 
-#### 1. Inisialisasi Database Lokal
-Pastikan database PostgreSQL Anda aktif di local (port `5432`), kemudian jalankan script untuk membuat database dan tabel secara lokal:
 ```bash
-npm run init-db
+npm start
 ```
-*(Script ini akan menghapus dan membuat ulang database `auth_service_db`, `rbac_service_db`, `data_master_service_db`, dan `transaksi_service_db` beserta tabel-tabelnya secara lokal).*
 
-#### 2. Jalankan Seluruh Container Service
-Jalankan perintah berikut di root project untuk membangun (build) dan menjalankan seluruh service:
-```bash
-npm run docker:up
-```
-*Atau menggunakan perintah native Docker:*
-```bash
-docker compose up --build
-```
-Semua service mikro dan frontend akan berjalan secara otomatis. Anda dapat membuka frontend di browser melalui alamat:
+Perintah ini akan secara otomatis:
+1. ✅ Menjalankan container **PostgreSQL**
+2. ✅ Membuat database (`auth_service_db`, `rbac_service_db`, `data_master_service_db`, `transaksi_service_db`)
+3. ✅ Membuat semua tabel yang diperlukan
+4. ✅ Mengisi data awal (seed users, roles, produk)
+5. ✅ Menjalankan semua microservices backend
+6. ✅ Menjalankan frontend
+
+Setelah semua container berjalan, buka browser:
 👉 **[http://localhost:5173](http://localhost:5173)**
 
-Untuk mematikan container:
+#### Melihat Logs
 ```bash
-npm run docker:down
+npm run logs
 ```
+
+#### 🛑 Menghentikan & Menghapus Semua Container (Satu Perintah)
+```bash
+npm stop
+```
+> Perintah ini akan **menghentikan** semua container, **menghapus** container, dan **menghapus volume** database. Saat `npm start` dijalankan kembali, database akan dibuat ulang dari awal.
 
 ---
 
 ### Opsi B: Menjalankan Secara Lokal (Tanpa Docker)
 
 #### 1. Instalasi Dependensi
-Instal seluruh package dependency untuk root project serta semua sub-microservices sekaligus dengan perintah:
 ```bash
 npm run install-all
 ```
 
 #### 2. Konfigurasi Environment Variables (`.env`)
-Salin file `.env.example` menjadi `.env` di setiap direktori service berikut dan sesuaikan konfigurasinya (seperti password database PostgreSQL lokal Anda):
+Salin file `.env.example` menjadi `.env` di setiap direktori service berikut dan sesuaikan konfigurasinya:
 - `api-gateway/.env`
 - `auth-service/.env`
 - `rbac-service/.env`
@@ -83,21 +87,76 @@ Salin file `.env.example` menjadi `.env` di setiap direktori service berikut dan
 - `transaksi-service/.env`
 
 #### 3. Inisialisasi Database
-Jalankan pembuatan database dan tabel lokal:
+Pastikan PostgreSQL lokal Anda berjalan di port `5432`, kemudian jalankan:
 ```bash
 npm run init-db
 ```
 
 #### 4. Jalankan Aplikasi
-Jalankan seluruh service backend dan frontend secara bersamaan menggunakan:
 ```bash
 npm run dev
 ```
+
 Aplikasi frontend akan tersedia di:
 👉 **[http://localhost:5173](http://localhost:5173)**
+
+---
+
+## 🔐 Data User Login (Default)
+
+Berikut adalah akun user default yang sudah di-seed saat inisialisasi database:
+
+| Role | Nama | Email | Password |
+| :---: | :--- | :--- | :---: |
+| **ADMIN** | Andi Pratama | `admin@mail.com` | `password123` |
+| **PEMBELI** | Siti Rahmawati | `pembeli@mail.com` | `password123` |
+
+> **Catatan:** Password di atas adalah plain text yang akan di-hash (bcrypt) secara otomatis saat proses seeding database.
+
+### Cara Login:
+1. Buka **[http://localhost:5173](http://localhost:5173)**
+2. Masukkan **Email** dan **Password** dari tabel di atas
+3. Klik **Login**
+
+### Perbedaan Hak Akses:
+| Fitur | ADMIN | PEMBELI |
+| :--- | :---: | :---: |
+| Kelola Data Master (CRUD Produk) | ✅ | ❌ |
+| Lihat Daftar Produk | ✅ | ✅ |
+| Buat Transaksi / Keranjang | ❌ | ✅ |
+| Kelola User (CRUD) | ✅ | ❌ |
+| Lihat Profil Sendiri | ✅ | ✅ |
+
+---
+
+## 📋 Ringkasan Perintah
+
+| Perintah | Deskripsi |
+| :--- | :--- |
+| `npm start` | 🚀 Jalankan semua (DB + init + services + frontend) |
+| `npm stop` | 🛑 Hentikan & hapus semua container + volume |
+| `npm run logs` | 📋 Lihat logs semua container |
+| `npm run dev` | 💻 Jalankan secara lokal (tanpa Docker) |
+| `npm run init-db` | 🗄️ Inisialisasi database (untuk mode lokal) |
+| `npm run install-all` | 📦 Install semua dependensi (untuk mode lokal) |
 
 ---
 
 ## 📂 Dokumentasi API & Postman
 Gunakan Postman Collection yang sudah disediakan di folder root untuk menguji API endpoint dari setiap service:
 - File Postman: `Dompet_PNBP.postman_collection.json`
+
+---
+
+## 🐳 Konfigurasi Database Docker
+
+| Parameter | Nilai |
+| :--- | :--- |
+| **Image** | `postgres:16-alpine` |
+| **User** | `postgres` |
+| **Password** | `password123!` |
+| **Host Port** | `5433` |
+| **Container Port** | `5432` |
+| **Databases** | `auth_service_db`, `rbac_service_db`, `data_master_service_db`, `transaksi_service_db` |
+
+> Anda dapat mengakses database dari host menggunakan tool seperti pgAdmin atau DBeaver di `localhost:5433` dengan kredensial di atas.

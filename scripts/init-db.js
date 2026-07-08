@@ -1,8 +1,11 @@
 const { Client } = require('pg');
 const bcrypt = require('bcryptjs');
 
-const DB_PASSWORD = 'password123!';
-const PG_CONNECTION_STRING = `postgresql://postgres:${encodeURIComponent(DB_PASSWORD)}@localhost:5432/postgres`;
+const DB_USER = process.env.DB_USER || 'postgres';
+const DB_PASSWORD = process.env.DB_PASSWORD || 'password123!';
+const DB_HOST = process.env.DB_HOST || 'localhost';
+const DB_PORT = process.env.DB_PORT || '5432';
+const PG_CONNECTION_STRING = `postgresql://${DB_USER}:${encodeURIComponent(DB_PASSWORD)}@${DB_HOST}:${DB_PORT}/postgres`;
 
 async function executeQueryOnDefaultDb(query) {
   const client = new Client({ connectionString: PG_CONNECTION_STRING });
@@ -15,7 +18,7 @@ async function executeQueryOnDefaultDb(query) {
 }
 
 async function executeQueryOnSpecificDb(dbName, query) {
-  const connectionString = `postgresql://postgres:${encodeURIComponent(DB_PASSWORD)}@localhost:5432/${dbName}`;
+  const connectionString = `postgresql://${DB_USER}:${encodeURIComponent(DB_PASSWORD)}@${DB_HOST}:${DB_PORT}/${dbName}`;
   const client = new Client({ connectionString });
   await client.connect();
   try {
