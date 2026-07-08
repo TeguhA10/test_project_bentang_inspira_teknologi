@@ -1,9 +1,6 @@
 FROM node:18-alpine
 WORKDIR /app
 
-# Copy root package.json for resolving "file:.." dependencies
-COPY package*.json ./
-
 # Copy data-master-service package files
 COPY data-master-service/package*.json ./data-master-service/
 

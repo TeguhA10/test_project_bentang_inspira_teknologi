@@ -1,9 +1,6 @@
 FROM node:18-alpine
 WORKDIR /app
 
-# Copy root package.json for resolving "file:.." dependencies
-COPY package*.json ./
-
 # Copy rbac-service package files
 COPY rbac-service/package*.json ./rbac-service/
 

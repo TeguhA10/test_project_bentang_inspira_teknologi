@@ -1,9 +1,6 @@
 FROM node:18-alpine
 WORKDIR /app
 
-# Copy root package.json for resolving "file:.." dependencies
-COPY package*.json ./
-
 # Copy frontend package files
 COPY frontend/package*.json ./frontend/
 

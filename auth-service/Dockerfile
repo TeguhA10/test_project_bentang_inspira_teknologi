@@ -1,9 +1,6 @@
 FROM node:18-alpine
 WORKDIR /app
 
-# Copy root package.json for resolving "file:.." dependencies
-COPY package*.json ./
-
 # Copy auth-service package files
 COPY auth-service/package*.json ./auth-service/
 
